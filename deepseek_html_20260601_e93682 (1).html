@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Wallet App | HR Onboarding & KYC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        .mandatory-highlight { border: 2px solid #eab308; background-color: #fef9c3; border-radius: 16px; padding: 12px; margin-top: 8px; }
+        .qr-card-mini { background: white; border-radius: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .tab-active { border-bottom: 3px solid #4f46e5; color: #4f46e5; font-weight: 600; }
+        .success-screen { background: #f0fdf4; border: 2px solid #22c55e; border-radius: 24px; padding: 2rem; text-align: center; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+
+<div class="max-w-7xl mx-auto px-3 py-5 md:py-8">
+    <div class="text-center mb-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800"><i class="fas fa-wallet text-indigo-600"></i> Wallet App · HR Onboarding System</h1>
+        <p class="text-gray-500 text-sm">Tab 1: Fill Data | Tab 2: Generate & Download QR | Tab 3: History</p>
+    </div>
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- LEFT: HR PORTAL with 3 TABS -->
+        <div class="lg:w-1/2 bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+            <!-- Tab Headers -->
+            <div class="flex border-b">
+                <button id="tabFillBtn" class="tab-active px-5 py-3 text-sm font-medium transition"><i class="fas fa-pen-alt"></i> Fill Data</button>
+                <button id="tabGenerateBtn" class="px-5 py-3 text-sm font-medium text-gray-600 transition"><i class="fas fa-qrcode"></i> Generate & Reach</button>
+                <button id="tabHistoryBtn" class="px-5 py-3 text-sm font-medium text-gray-600 transition"><i class="fas fa-history"></i> History</button>
+            </div>
+
+            <!-- Tab 1: Fill Data -->
+            <div id="fillTab" class="p-5 space-y-6 max-h-[75vh] overflow-y-auto">
+                <!-- Bulk import -->
+                <div class="border-b pb-4">
+                    <div class="flex flex-wrap gap-3 items-center justify-between">
+                        <button id="downloadTemplateBtn" class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm"><i class="fas fa-download"></i> Download CSV Template</button>
+                        <label class="bg-emerald-600 hover:bg-emerald-700 cursor-pointer text-white px-4 py-2 rounded-xl text-sm"><i class="fas fa-upload"></i> Import CSV (max 5) <input type="file" id="bulkExcelInput" accept=".csv,.xls,.xlsx" class="hidden"></label>
+                    </div>
+                    <div id="bulkPreviewArea" class="hidden mt-3 border rounded-xl p-3 bg-gray-50">
+                        <div class="flex justify-between items-center"><span class="font-semibold text-sm"><i class="fas fa-users"></i> Imported employees</span><button id="generateAllQrBtn" class="bg-indigo-600 text-white text-xs px-3 py-1 rounded-lg"><i class="fas fa-magic"></i> Generate All QR Cards (ZIP)</button></div>
+                        <div id="bulkEmployeeList" class="space-y-1 max-h-40 overflow-y-auto text-sm mt-2"></div>
+                        <div id="bulkStatus" class="text-xs text-gray-500 mt-1"></div>
+                    </div>
+                </div>
+
+                <!-- Single Employee Full Form -->
+                <div>
+                    <p class="text-sm font-semibold mb-3"><i class="fas fa-user-edit"></i> Single Employee (All fields)</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <input type="text" id="singleFullName" placeholder="Full Name *" class="border rounded-lg px-3 py-2" value="Aung Ko">
+                        <input type="tel" id="singlePhone" placeholder="Phone *" class="border rounded-lg px-3 py-2" value="9597123456">
+                        <input type="text" id="singlePrimaryRegion" placeholder="Primary Region" class="border rounded-lg px-3 py-2" value="Yangon">
+                        <input type="text" id="singlePrimaryTownship" placeholder="Primary Township" class="border rounded-lg px-3 py-2" value="Hlaing">
+                        <input type="text" id="singlePrimaryHouse" placeholder="Primary House No" class="border rounded-lg px-3 py-2" value="42/A">
+                        <input type="text" id="singlePrimaryStreet" placeholder="Primary Street" class="border rounded-lg px-3 py-2" value="Inya Road">
+                        <input type="text" id="singleSecondaryRegion" placeholder="Secondary Region" class="border rounded-lg px-3 py-2" value="Bago">
+                        <input type="text" id="singleSecondaryTownship" placeholder="Secondary Township" class="border rounded-lg px-3 py-2" value="Pyay">
+                        <input type="text" id="singleSecondaryHouse" placeholder="Secondary House" class="border rounded-lg px-3 py-2" value="7/B">
+                        <input type="text" id="singleSecondaryStreet" placeholder="Secondary Street" class="border rounded-lg px-3 py-2" value="Main Road">
+                        <input type="text" id="singleNrc" placeholder="NRC/ID" class="border rounded-lg px-3 py-2" value="12/ABC(N)123456">
+                        <input type="date" id="singleDob" placeholder="DOB" class="border rounded-lg px-3 py-2" value="1990-01-01">
+                        <select id="singleGender" class="border rounded-lg px-3 py-2"><option>Male</option><option>Female</option></select>
+                        <input type="text" id="singleFather" placeholder="Father Name" class="border rounded-lg px-3 py-2" value="U Tin">
+                        <input type="text" id="singleEmpId" placeholder="Employer ID" class="border rounded-lg px-3 py-2" value="EMP-001">
+                    </div>
+                    <button id="singleGenerateBtn" class="w-full mt-4 bg-indigo-600 text-white py-2.5 rounded-xl text-sm font-semibold"><i class="fas fa-qrcode"></i> Generate Single QR Card</button>
+                </div>
+            </div>
+
+            <!-- Tab 2: Generate & Reach (QR cards list with manual download) -->
+            <div id="generateTab" class="hidden p-5 space-y-4 max-h-[75vh] overflow-y-auto">
+                <div class="flex justify-between items-center"><span class="font-semibold"><i class="fas fa-print"></i> Generated QR Cards</span><button id="refreshGenList" class="text-indigo-600 text-sm"><i class="fas fa-sync-alt"></i> Refresh</button></div>
+                <div id="generatedQrList" class="space-y-3"></div>
+                <div id="noGenMsg" class="text-center text-gray-400 py-8">No QR generated yet. Use "Fill Data" tab to create.</div>
+            </div>
+
+            <!-- Tab 3: History Table -->
+            <div id="historyTab" class="hidden p-5 max-h-[75vh] overflow-y-auto">
+                <h3 class="font-bold text-lg mb-2">Generation History</h3>
+                <table class="min-w-full text-sm border">
+                    <thead class="bg-gray-100"><tr><th class="p-2">Time</th><th>Type</th><th>Name</th><th>Phone</th><th>Action</th></tr></thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+                <div id="noHistoryMsg" class="text-center text-gray-400 py-4">No history yet</div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Wallet App (Mobile KYC, yellow highlights, demo live photo) -->
+        <div class="lg:w-1/2 bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col">
+            <div class="bg-emerald-700 px-5 py-3 flex items-center justify-between">
+                <div><i class="fas fa-wallet text-white text-lg"></i><span class="text-white font-semibold ml-2">Wallet App · Mandatory KYC</span></div>
+                <span class="text-white text-xs"><i class="fas fa-shield-alt"></i> No skip</span>
+            </div>
+            <div class="p-5 space-y-4 max-h-[75vh] overflow-y-auto" id="mobileAppContainer"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- GLOBAL STORE ----------
+    let employeeStore = {};      // token -> full record
+    let latestGeneratedToken = null;
+    let generatedHistory = [];    // { timestamp, type, name, phone, token }
+    let currentSingleToken = null;
+
+    function generateToken() { return "EMP-" + Math.random().toString(36).substring(2, 10).toUpperCase(); }
+    function getExpiryDate() { let d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split('T')[0]; }
+
+    function addHistory(type, name, phone, token) {
+        generatedHistory.unshift({ timestamp: new Date().toLocaleString(), type, name, phone, token });
+        if (generatedHistory.length > 50) generatedHistory.pop();
+        renderHistoryTable();
+    }
+
+    function renderHistoryTable() {
+        const tbody = document.getElementById("historyTableBody");
+        const noMsg = document.getElementById("noHistoryMsg");
+        if (!tbody) return;
+        if (generatedHistory.length === 0) {
+            noMsg.classList.remove("hidden");
+            tbody.innerHTML = "";
+        } else {
+            noMsg.classList.add("hidden");
+            tbody.innerHTML = generatedHistory.map(h => `
+                <tr class="border-b"><td class="p-2 text-xs">${h.timestamp}</td><td class="p-2">${h.type}</td><td class="p-2">${h.name}</td><td class="p-2">${h.phone}</td><td class="p-2"><button onclick="downloadExistingQR('${h.token}')" class="text-indigo-600 text-xs"><i class="fas fa-download"></i> QR</button></td></tr>
+            `).join("");
+        }
+    }
+    window.downloadExistingQR = async function(token) {
+        const emp = employeeStore[token];
+        if (!emp) return alert("Record not found");
+        await downloadSingleQRCard(emp.fullName, emp.phone, token, emp.expiry);
+    };
+
+    function createEmployeeRecord(data) {
+        const token = generateToken();
+        const expiry = getExpiryDate();
+        const full = {
+            token, expiry,
+            phone: data.phone, fullName: data.fullName,
+            primaryRegion: data.primaryRegion || "", primaryTownship: data.primaryTownship || "", primaryHouse: data.primaryHouse || "", primaryStreet: data.primaryStreet || "",
+            secondaryRegion: data.secondaryRegion || "", secondaryTownship: data.secondaryTownship || "", secondaryHouse: data.secondaryHouse || "", secondaryStreet: data.secondaryStreet || "",
+            nrc: data.nrc || "", dob: data.dob || "", gender: data.gender || "Male", father: data.father || "", empId: data.empId || ""
+        };
+        employeeStore[token] = full;
+        return { token, expiry };
+    }
+
+    async function downloadSingleQRCard(name, phone, token, expiry) {
+        const cardDiv = document.createElement("div");
+        cardDiv.className = "bg-white p-4 rounded-xl shadow-lg text-center w-80";
+        cardDiv.innerHTML = `
+            <div class="font-bold text-lg">${name}</div>
+            <div class="text-sm text-gray-600"><i class="fas fa-phone"></i> ${phone}</div>
+            <div id="tempQr_${token}" class="flex justify-center my-2"></div>
+            <div class="text-xs font-mono">Token: ${token}</div>
+            <div class="text-xs">Expiry: ${expiry}</div>
+            <div class="text-xs text-gray-400 mt-1">Wallet App HR</div>
+        `;
+        document.body.appendChild(cardDiv);
+        await new Promise((resolve) => {
+            new QRCode(cardDiv.querySelector(`#tempQr_${token}`), { text: JSON.stringify({ token, phone, name, company: "WalletApp", expiry }), width: 130, height: 130 });
+            setTimeout(resolve, 200);
+        });
+        const canvasImg = await html2canvas(cardDiv, { scale: 2 });
+        const imgData = canvasImg.toDataURL("image/jpeg", 0.9);
+        const safeName = name.replace(/[^a-z0-9]/gi, '_');
+        saveAs(imgData, `${safeName}_${phone}.jpg`);
+        document.body.removeChild(cardDiv);
+    }
+
+    function addToGenerateTab(token, name, phone, expiry) {
+        const container = document.getElementById("generatedQrList");
+        const noMsg = document.getElementById("noGenMsg");
+        if (noMsg) noMsg.classList.add("hidden");
+        const cardWrapper = document.createElement("div");
+        cardWrapper.className = "qr-card-mini p-3 border flex items-center justify-between bg-white mb-2";
+        cardWrapper.id = `gen_${token}`;
+        const qrDiv = document.createElement("div");
+        qrDiv.id = `qr_preview_${token}`;
+        const infoDiv = document.createElement("div");
+        infoDiv.className = "text-xs flex-1 ml-3";
+        infoDiv.innerHTML = `<div><i class="fas fa-user"></i> ${name}</div><div><i class="fas fa-phone"></i> ${phone}</div><div>${token}</div><div>Exp: ${expiry}</div>`;
+        const downBtn = document.createElement("button");
+        downBtn.className = "bg-indigo-100 text-indigo-700 px-2 py-1 rounded-lg text-xs";
+        downBtn.innerHTML = '<i class="fas fa-download"></i> Image';
+        downBtn.onclick = () => downloadSingleQRCard(name, phone, token, expiry);
+        cardWrapper.appendChild(qrDiv);
+        cardWrapper.appendChild(infoDiv);
+        cardWrapper.appendChild(downBtn);
+        container.prepend(cardWrapper);
+        new QRCode(qrDiv, { text: JSON.stringify({ token, phone, name, company: "WalletApp", expiry }), width: 70, height: 70 });
+    }
+
+    // --- Tab switching and auto-switch after generation ---
+    const fillTab = document.getElementById("fillTab");
+    const generateTab = document.getElementById("generateTab");
+    const historyTab = document.getElementById("historyTab");
+    const tabFillBtn = document.getElementById("tabFillBtn");
+    const tabGenerateBtn = document.getElementById("tabGenerateBtn");
+    const tabHistoryBtn = document.getElementById("tabHistoryBtn");
+
+    function switchToTab(tabName) {
+        fillTab.classList.add("hidden");
+        generateTab.classList.add("hidden");
+        historyTab.classList.add("hidden");
+        if (tabName === 'fill') {
+            fillTab.classList.remove("hidden");
+            tabFillBtn.classList.add("tab-active");
+            tabGenerateBtn.classList.remove("tab-active");
+            tabHistoryBtn.classList.remove("tab-active");
+        } else if (tabName === 'generate') {
+            generateTab.classList.remove("hidden");
+            tabGenerateBtn.classList.add("tab-active");
+            tabFillBtn.classList.remove("tab-active");
+            tabHistoryBtn.classList.remove("tab-active");
+        } else if (tabName === 'history') {
+            historyTab.classList.remove("hidden");
+            tabHistoryBtn.classList.add("tab-active");
+            tabFillBtn.classList.remove("tab-active");
+            tabGenerateBtn.classList.remove("tab-active");
+            renderHistoryTable();
+        }
+    }
+    tabFillBtn.addEventListener("click", () => switchToTab('fill'));
+    tabGenerateBtn.addEventListener("click", () => switchToTab('generate'));
+    tabHistoryBtn.addEventListener("click", () => switchToTab('history'));
+
+    // --- Bulk CSV handling (fixed) ---
+    let importedEmployees = [];
+    document.getElementById("downloadTemplateBtn").addEventListener("click", () => {
+        const headers = ["FullName","Phone","PrimaryRegion","PrimaryTownship","PrimaryHouse","PrimaryStreet","SecondaryRegion","SecondaryTownship","SecondaryHouse","SecondaryStreet","NRC","DOB","Gender","FatherName","EmployerID"];
+        const csv = headers.join(",") + "\n" + "Thiri Aung,9597123456,Yangon,Hlaing,42,Inya Road,Bago,Pyay,7B,Main Road,12/ABC(N)239876,1995-05-10,Female,U Myint Thein,EMP123";
+        saveAs(new Blob([csv], {type: "text/csv"}), "hr_qr_template.csv");
+    });
+
+    const excelInput = document.getElementById("bulkExcelInput");
+    const bulkPreview = document.getElementById("bulkPreviewArea");
+    const bulkListDiv = document.getElementById("bulkEmployeeList");
+    excelInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet);
+            if (rows.length > 5) rows.length = 5;
+            importedEmployees = [];
+            for (let row of rows) {
+                importedEmployees.push({
+                    fullName: row.FullName || "",
+                    phone: row.Phone || "",
+                    primaryRegion: row.PrimaryRegion || "", primaryTownship: row.PrimaryTownship || "", primaryHouse: row.PrimaryHouse || "", primaryStreet: row.PrimaryStreet || "",
+                    secondaryRegion: row.SecondaryRegion || "", secondaryTownship: row.SecondaryTownship || "", secondaryHouse: row.SecondaryHouse || "", secondaryStreet: row.SecondaryStreet || "",
+                    nrc: row.NRC || "", dob: row.DOB || "", gender: row.Gender || "Male", father: row.FatherName || "", empId: row.EmployerID || ""
+                });
+            }
+            if (importedEmployees.length === 0) return alert("No valid data");
+            bulkPreview.classList.remove("hidden");
+            bulkListDiv.innerHTML = importedEmployees.map(emp => `<div class="bg-white p-1 rounded text-xs"><i class="fas fa-user"></i> ${emp.fullName} | ${emp.phone}</div>`).join("");
+            document.getElementById("bulkStatus").innerHTML = `${importedEmployees.length} employee(s) ready.`;
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    // Generate All Bulk QR
+    document.getElementById("generateAllQrBtn").addEventListener("click", async () => {
+        if (importedEmployees.length === 0) return alert("Import employees first");
+        const zip = new JSZip();
+        for (let emp of importedEmployees) {
+            if (!emp.fullName || !emp.phone) continue;
+            const { token, expiry } = createEmployeeRecord(emp);
+            latestGeneratedToken = token;
+            addToGenerateTab(token, emp.fullName, emp.phone, expiry);
+            addHistory("Bulk Import", emp.fullName, emp.phone, token);
+            const cardDiv = document.createElement("div");
+            cardDiv.className = "bg-white p-4 rounded-xl shadow-lg text-center w-80";
+            cardDiv.innerHTML = `<div class="font-bold">${emp.fullName}</div><div>${emp.phone}</div><div id="tempQr_${token}" class="flex justify-center my-2"></div><div>Token: ${token}</div><div>Expiry: ${expiry}</div>`;
+            document.body.appendChild(cardDiv);
+            await new Promise((resolve) => {
+                new QRCode(cardDiv.querySelector(`#tempQr_${token}`), { text: JSON.stringify({ token, phone: emp.phone, name: emp.fullName, company: "WalletApp", expiry }), width: 120, height: 120 });
+                setTimeout(resolve, 200);
+            });
+            const canvasImg = await html2canvas(cardDiv, { scale: 2 });
+            const imgData = canvasImg.toDataURL("image/jpeg", 0.9);
+            const safeName = emp.fullName.replace(/[^a-z0-9]/gi, '_');
+            zip.file(`${safeName}_${emp.phone}.jpg`, imgData.split(',')[1], { base64: true });
+            document.body.removeChild(cardDiv);
+        }
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, "bulk_qr_cards.zip");
+        alert("Bulk QR cards generated & added to Generate tab.");
+        importedEmployees = [];
+        bulkPreview.classList.add("hidden");
+        switchToTab('generate');
+    });
+
+    // Single Generate
+    document.getElementById("singleGenerateBtn").addEventListener("click", async () => {
+        const fullName = document.getElementById("singleFullName").value.trim();
+        const phone = document.getElementById("singlePhone").value.trim();
+        if (!fullName || !phone) { alert("Name and phone required"); return; }
+        const empData = {
+            fullName, phone,
+            primaryRegion: document.getElementById("singlePrimaryRegion").value,
+            primaryTownship: document.getElementById("singlePrimaryTownship").value,
+            primaryHouse: document.getElementById("singlePrimaryHouse").value,
+            primaryStreet: document.getElementById("singlePrimaryStreet").value,
+            secondaryRegion: document.getElementById("singleSecondaryRegion").value,
+            secondaryTownship: document.getElementById("singleSecondaryTownship").value,
+            secondaryHouse: document.getElementById("singleSecondaryHouse").value,
+            secondaryStreet: document.getElementById("singleSecondaryStreet").value,
+            nrc: document.getElementById("singleNrc").value,
+            dob: document.getElementById("singleDob").value,
+            gender: document.getElementById("singleGender").value,
+            father: document.getElementById("singleFather").value,
+            empId: document.getElementById("singleEmpId").value
+        };
+        const { token, expiry } = createEmployeeRecord(empData);
+        latestGeneratedToken = token;
+        addToGenerateTab(token, fullName, phone, expiry);
+        addHistory("Single", fullName, phone, token);
+        alert(`QR generated for ${fullName}. Check "Generate & Reach" tab.`);
+        await downloadSingleQRCard(fullName, phone, token, expiry);
+        switchToTab('generate');
+    });
+
+    document.getElementById("refreshGenList").addEventListener("click", () => {});
+
+    // ---------- MOBILE WALLET APP (yellow highlights, demo live photo) ----------
+    const mobileContainer = document.getElementById("mobileAppContainer");
+    let mobileLoggedIn = false;
+    let mobileCurrentToken = null;
+    let mobileSelfieDemo = false; // demo flag
+
+    function renderMobileLogin() {
+        mobileContainer.innerHTML = `
+            <div id="loginStepMobile" class="space-y-3">
+                <div class="flex items-center gap-2"><span class="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">1/3</span><span class="text-sm font-medium"><i class="fas fa-phone"></i> Phone verification</span></div>
+                <div class="flex gap-2"><input type="tel" id="mobilePhone" class="flex-1 border rounded-xl px-4 py-3" placeholder="9597XXXXXX" value="9597123456"><button id="mobileSendOtp" class="bg-gray-800 text-white px-5 rounded-xl text-sm"><i class="fas fa-paper-plane"></i> Send</button></div>
+                <div id="mobileOtpSection" class="hidden"><div class="flex gap-2"><input type="text" id="mobileOtp" class="flex-1 border rounded-xl px-4 py-3 text-center" placeholder="123456"><button id="mobileVerifyOtp" class="bg-emerald-600 text-white px-5 rounded-xl">Verify</button></div><p class="text-xs text-gray-400">Demo OTP: 123456</p></div>
+            </div>
+        `;
+        document.getElementById("mobileSendOtp").addEventListener("click", () => {
+            document.getElementById("mobileOtpSection").classList.remove("hidden");
+        });
+        document.getElementById("mobileVerifyOtp").addEventListener("click", () => {
+            if (document.getElementById("mobileOtp").value === "123456") {
+                mobileLoggedIn = true;
+                renderMobileQRGateway();
+            } else alert("Invalid OTP");
+        });
+    }
+
+    function renderMobileQRGateway() {
+        mobileContainer.innerHTML = `
+            <div class="space-y-3">
+                <div class="flex items-center gap-2"><span class="bg-gray-200 text-gray-700 text-xs px-2 py-0.5 rounded-full">2/3</span><span class="text-sm font-medium"><i class="fas fa-qrcode"></i> Scan QR from HR card</span></div>
+                <div class="bg-gray-50 p-5 rounded-2xl border-dashed border-2 text-center space-y-3">
+                    <i class="fas fa-camera text-3xl text-indigo-400"></i>
+                    <div class="flex flex-wrap justify-center gap-3">
+                        <button id="mobileMockScan" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-5 py-2 rounded-xl text-sm"><i class="fas fa-magic"></i> Mock Scan (latest HR)</button>
+                        <label class="bg-gray-200 hover:bg-gray-300 cursor-pointer px-5 py-2 rounded-xl text-sm"><i class="fas fa-upload"></i> Upload QR <input type="file" id="mobileQrUpload" accept="image/*" class="hidden"></label>
+                        <button id="mobileManualToken" class="text-emerald-600 text-sm underline"><i class="fas fa-keyboard"></i> Manual token</button>
+                    </div>
+                    <div id="mobileQrStatus" class="text-xs text-red-500"></div>
+                </div>
+            </div>
+        `;
+        document.getElementById("mobileMockScan").addEventListener("click", () => {
+            if (!latestGeneratedToken || !employeeStore[latestGeneratedToken]) {
+                document.getElementById("mobileQrStatus").innerText = "No QR generated in HR yet.";
+                return;
+            }
+            mobileCurrentToken = latestGeneratedToken;
+            renderMobileKYCForm();
+        });
+        document.getElementById("mobileManualToken").addEventListener("click", () => {
+            let t = prompt("Enter token");
+            if (t && employeeStore[t]) { mobileCurrentToken = t; renderMobileKYCForm(); }
+            else alert("Invalid token");
+        });
+        document.getElementById("mobileQrUpload").addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = img.width; canvas.height = img.height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0);
+                    const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+                    if (code) {
+                        try {
+                            const payload = JSON.parse(code.data);
+                            if (payload.token && employeeStore[payload.token]) { mobileCurrentToken = payload.token; renderMobileKYCForm(); }
+                            else document.getElementById("mobileQrStatus").innerText = "Token not recognized";
+                        } catch(e) { document.getElementById("mobileQrStatus").innerText = "Invalid QR"; }
+                    } else document.getElementById("mobileQrStatus").innerText = "No QR found";
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderMobileKYCForm() {
+        const emp = employeeStore[mobileCurrentToken];
+        if (!emp) return;
+        mobileContainer.innerHTML = `
+            <div class="space-y-5">
+                <div class="flex items-center gap-2"><span class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">3/3</span><span class="text-sm font-medium">Complete KYC (Mandatory)</span></div>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div><label class="text-xs">Full Name</label><input id="kycFullNameM" class="w-full border rounded-lg px-2 py-1.5" value="${emp.fullName}"></div>
+                    <div><label class="text-xs">Phone</label><input id="kycPhoneM" class="w-full bg-gray-100 border rounded-lg px-2 py-1.5" value="${emp.phone}" readonly></div>
+                </div>
+                <div class="bg-gray-50 p-2 rounded-xl"><label class="text-xs">Primary Address</label><div class="grid grid-cols-2 gap-2"><input id="primRegion" placeholder="Region" value="${emp.primaryRegion}"><input id="primTownship" value="${emp.primaryTownship}"><input id="primHouse" value="${emp.primaryHouse}"><input id="primStreet" value="${emp.primaryStreet}"></div></div>
+                <div class="bg-gray-50 p-2 rounded-xl"><label class="text-xs">Secondary Address</label><div class="grid grid-cols-2 gap-2"><input id="secRegion" value="${emp.secondaryRegion}"><input id="secTownship" value="${emp.secondaryTownship}"><input id="secHouse" value="${emp.secondaryHouse}"><input id="secStreet" value="${emp.secondaryStreet}"></div></div>
+                <div><input id="kycNrcM" placeholder="NRC/ID" class="border rounded w-full p-1" value="${emp.nrc}"><input id="kycDobM" type="date" class="border rounded w-full p-1 mt-1" value="${emp.dob}"><select id="kycGenderM" class="border rounded w-full p-1 mt-1"><option ${emp.gender==='Male'?'selected':''}>Male</option><option ${emp.gender==='Female'?'selected':''}>Female</option></select><input id="kycFatherM" placeholder="Father Name" class="border rounded w-full p-1 mt-1" value="${emp.father}"></div>
+                <div class="mandatory-highlight"><p class="text-sm font-semibold text-amber-700"><i class="fas fa-id-card"></i> Mandatory: Upload NRC (Front & Back)</p><div class="flex gap-2 mt-2"><div><label class="text-xs">Front</label><input type="file" id="nrcFrontM" accept="image/*"></div><div><label class="text-xs">Back</label><input type="file" id="nrcBackM" accept="image/*"></div></div><div id="nrcWarningM" class="text-xs text-red-500 hidden">Both required</div></div>
+                <div class="mandatory-highlight"><p class="text-sm font-semibold text-amber-700"><i class="fas fa-camera"></i> Mandatory: Live Selfie (Demo)</p><button id="demoLiveBtn" class="bg-blue-500 text-white text-xs px-4 py-2 rounded-lg"><i class="fas fa-camera-retro"></i> Take Demo Selfie</button><div id="selfiePreviewDemo" class="hidden mt-2"><img id="demoSelfieImg" class="w-16 h-16 rounded-full object-cover border-2 border-green-500"><p class="text-xs text-green-600">Selfie captured (demo)</p></div><div id="faceWarningDemo" class="text-xs text-red-500 hidden">Please take a selfie</div></div>
+                <button id="submitKycM" class="w-full bg-emerald-600 text-white py-3 rounded-xl">Submit KYC</button>
+                <div id="submitResultM" class="text-xs text-center"></div>
+            </div>
+        `;
+        let selfieDone = false;
+        const demoBtn = document.getElementById("demoLiveBtn");
+        const previewDiv = document.getElementById("selfiePreviewDemo");
+        const selfieImg = document.getElementById("demoSelfieImg");
+        const faceWarning = document.getElementById("faceWarningDemo");
+        demoBtn.addEventListener("click", () => {
+            // demo: use a placeholder avatar
+            selfieImg.src = "https://randomuser.me/api/portraits/women/68.jpg";
+            previewDiv.classList.remove("hidden");
+            selfieDone = true;
+            faceWarning.classList.add("hidden");
+            alert("📸 Demo selfie captured (liveness check passed)");
+        });
+        document.getElementById("submitKycM").addEventListener("click", () => {
+            let valid = true;
+            if (!document.getElementById("nrcFrontM").files[0] || !document.getElementById("nrcBackM").files[0]) {
+                document.getElementById("nrcWarningM").classList.remove("hidden");
+                valid = false;
+            } else document.getElementById("nrcWarningM").classList.add("hidden");
+            if (!selfieDone) { faceWarning.classList.remove("hidden"); valid = false; }
+            else faceWarning.classList.add("hidden");
+            if (!valid) return;
+            document.getElementById("submitResultM").innerHTML = "<span class='text-blue-600'>Processing KYC...</span>";
+            setTimeout(() => {
+                mobileContainer.innerHTML = `<div class="success-screen"><i class="fas fa-check-circle text-green-500 text-5xl"></i><h2 class="text-xl font-bold mt-2">Registration Successful!</h2><p>Your Wallet App is ready.</p><button id="resetMobile" class="mt-4 bg-emerald-600 text-white px-4 py-2 rounded-lg">Back to Login</button></div>`;
+                document.getElementById("resetMobile")?.addEventListener("click", () => { renderMobileLogin(); });
+            }, 1500);
+        });
+    }
+
+    renderMobileLogin();
+</script>
+</body>
+</html>
